@@ -279,7 +279,7 @@ type Config struct {
 
 	GCMIVFromHSMControl GCMIVFromHSMConfig
 
-	Log log.Logger
+	Log *log.Logger
 }
 
 type GCMIVFromHSMConfig struct {
@@ -298,6 +298,10 @@ var refCountMutex = sync.Mutex{}
 
 // Configure creates a new Context based on the supplied PKCS#11 configuration.
 func Configure(config *Config) (*Context, error) {
+	if config.Log == nil {
+		config.Log = log.Default()
+	}
+
 	// Have we been given exactly one way to select a token?
 	var fields []string
 	if config.SlotNumber != nil {
