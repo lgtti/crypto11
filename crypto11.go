@@ -21,7 +21,7 @@
 
 // Package crypto11 enables access to cryptographic keys from PKCS#11 using Go crypto API.
 //
-// Configuration
+// # Configuration
 //
 // PKCS#11 tokens are accessed via Context objects. Each Context connects to one token.
 //
@@ -29,7 +29,7 @@
 // In the latter case, the file should contain a JSON representation of
 // a Config.
 //
-// Key Generation and Usage
+// # Key Generation and Usage
 //
 // There is support for generating DSA, RSA and ECDSA keys. These keys
 // can be found later using FindKeyPair. All three key types implement
@@ -42,7 +42,7 @@
 // Symmetric keys can also be generated. These are found later using FindKey.
 // See the documentation for SecretKey for further information.
 //
-// Sessions and concurrency
+// # Sessions and concurrency
 //
 // Note that PKCS#11 session handles must not be used concurrently
 // from multiple threads. Consumers of the Signer interface know
@@ -74,7 +74,7 @@
 // a default maximum is used (see DefaultMaxSessions). In every case the maximum
 // supported sessions as reported by the token is obeyed.
 //
-// Limitations
+// # Limitations
 //
 // The PKCS1v15DecryptOptions SessionKeyLen field is not implemented
 // and an error is returned if it is nonzero.
@@ -92,6 +92,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -201,12 +202,24 @@ type SignerDecrypter interface {
 
 // findToken finds a token given exactly one of serial, label or slotNumber
 func (c *Context) findToken(slots []uint, serial, label string, slotNumber *int) (uint, *pkcs11.TokenInfo, error) {
+	if slotNumber != nil {
+		c.cfg.Log.Printf("Search for a match token for serial=%s, label=%s, slotNumber=%d\n",
+			serial, label, *slotNumber)
+	} else {
+		c.cfg.Log.Printf("Search for a match token for serial=%s, label=%s\n",
+			serial, label)
+	}
+
 	for _, slot := range slots {
+
+		c.cfg.Log.Printf("Analyze slot %d\n", slot)
 
 		tokenInfo, err := c.ctx.GetTokenInfo(slot)
 		if err != nil {
 			return 0, nil, err
 		}
+
+		c.cfg.Log.Printf("Slot detailed info %+v\n", tokenInfo)
 
 		if (slotNumber != nil && uint(*slotNumber) == slot) ||
 			(tokenInfo.SerialNumber != "" && tokenInfo.SerialNumber == serial) ||
@@ -265,6 +278,8 @@ type Config struct {
 	GCMIVLength int
 
 	GCMIVFromHSMControl GCMIVFromHSMConfig
+
+	Log log.Logger
 }
 
 type GCMIVFromHSMConfig struct {
@@ -342,6 +357,8 @@ func Configure(config *Config) (*Context, error) {
 		instance.ctx.Destroy()
 		return nil, errors.WithMessage(err, "failed to list PKCS#11 slots")
 	}
+
+	config.Log.Printf("Current slot list #=%d, values %+v\n", len(slots), slots)
 
 	instance.slot, instance.token, err = instance.findToken(slots, config.TokenSerial, config.TokenLabel, config.SlotNumber)
 	if err != nil {
