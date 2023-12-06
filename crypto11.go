@@ -91,8 +91,8 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"sync"
@@ -203,23 +203,23 @@ type SignerDecrypter interface {
 // findToken finds a token given exactly one of serial, label or slotNumber
 func (c *Context) findToken(slots []uint, serial, label string, slotNumber *int) (uint, *pkcs11.TokenInfo, error) {
 	if slotNumber != nil {
-		c.cfg.Log.Printf("Search for a match token for serial=%s, label=%s, slotNumber=%d\n",
+		c.cfg.Log.Debugf("Search for a match token for serial=%s, label=%s, slotNumber=%d\n",
 			serial, label, *slotNumber)
 	} else {
-		c.cfg.Log.Printf("Search for a match token for serial=%s, label=%s\n",
+		c.cfg.Log.Debugf("Search for a match token for serial=%s, label=%s\n",
 			serial, label)
 	}
 
 	for _, slot := range slots {
 
-		c.cfg.Log.Printf("Analyze slot %d\n", slot)
+		c.cfg.Log.Debugf("Analyze slot %d\n", slot)
 
 		tokenInfo, err := c.ctx.GetTokenInfo(slot)
 		if err != nil {
 			return 0, nil, err
 		}
 
-		c.cfg.Log.Printf("Slot detailed info %+v\n", tokenInfo)
+		c.cfg.Log.Debugf("Slot detailed info %+v\n", tokenInfo)
 
 		if (slotNumber != nil && uint(*slotNumber) == slot) ||
 			(tokenInfo.SerialNumber != "" && tokenInfo.SerialNumber == serial) ||
@@ -279,7 +279,7 @@ type Config struct {
 
 	GCMIVFromHSMControl GCMIVFromHSMConfig
 
-	Log *log.Logger
+	Log *logrus.Entry
 }
 
 type GCMIVFromHSMConfig struct {
@@ -299,7 +299,7 @@ var refCountMutex = sync.Mutex{}
 // Configure creates a new Context based on the supplied PKCS#11 configuration.
 func Configure(config *Config) (*Context, error) {
 	if config.Log == nil {
-		config.Log = log.Default()
+		config.Log = logrus.NewEntry(logrus.New())
 	}
 
 	// Have we been given exactly one way to select a token?
@@ -362,7 +362,7 @@ func Configure(config *Config) (*Context, error) {
 		return nil, errors.WithMessage(err, "failed to list PKCS#11 slots")
 	}
 
-	config.Log.Printf("Current slot list #=%d, values %+v\n", len(slots), slots)
+	config.Log.Debugf("Current slot list #=%d, values %+v\n", len(slots), slots)
 
 	instance.slot, instance.token, err = instance.findToken(slots, config.TokenSerial, config.TokenLabel, config.SlotNumber)
 	if err != nil {

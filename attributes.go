@@ -14,7 +14,7 @@ type AttributeType = uint
 // Attribute represents a PKCS#11 CK_ATTRIBUTE type.
 type Attribute = pkcs11.Attribute
 
-//noinspection GoUnusedConst,GoDeprecation
+// noinspection GoUnusedConst,GoDeprecation
 const (
 	CkaClass                  = AttributeType(0x00000000)
 	CkaToken                  = AttributeType(0x00000001)
