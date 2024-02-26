@@ -44,6 +44,8 @@ var errMalformedRSAPublicKey = errors.New("malformed RSA public key")
 // requested.
 var errUnsupportedRSAOptions = errors.New("unsupported RSA option value")
 
+var errNegativeRSAPSSAutoSaltLen = errors.New("RSA pss auto salt len is negative")
+
 // pkcs11PrivateKeyRSA contains a reference to a loaded PKCS#11 RSA private key object.
 type pkcs11PrivateKeyRSA struct {
 	pkcs11PrivateKey
@@ -251,11 +253,13 @@ func signPSS(session *pkcs11Session, key *pkcs11PrivateKeyRSA, digest []byte, op
 		return nil, err
 	}
 	switch opts.SaltLength {
-	case rsa.PSSSaltLengthAuto: // parseltongue constant
-		// TODO we could (in principle) work out the biggest
-		// possible size from the key, but until someone has
-		// the effort to do that...
-		return nil, errUnsupportedRSAOptions
+	case rsa.PSSSaltLengthAuto:
+		tmpSLen := (key.pubKey.(*rsa.PrivateKey).N.BitLen()-1+7)/8 - 2 - int(hLen)
+		if tmpSLen < 0 {
+			return nil, errNegativeRSAPSSAutoSaltLen
+		}
+
+		sLen = uint(tmpSLen)
 	case rsa.PSSSaltLengthEqualsHash:
 		sLen = hLen
 	default:
