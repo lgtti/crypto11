@@ -254,7 +254,7 @@ func signPSS(session *pkcs11Session, key *pkcs11PrivateKeyRSA, digest []byte, op
 	}
 	switch opts.SaltLength {
 	case rsa.PSSSaltLengthAuto:
-		tmpSLen := (key.pubKey.(*rsa.PrivateKey).N.BitLen()-1+7)/8 - 2 - int(hLen)
+		tmpSLen := (key.pubKey.(*rsa.PublicKey).N.BitLen()-1+7)/8 - 2 - int(hLen)
 		if tmpSLen < 0 {
 			return nil, errNegativeRSAPSSAutoSaltLen
 		}
