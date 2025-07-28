@@ -51,7 +51,7 @@ func (c *Context) SignerHandle(signer Signer) (pkcs11.ObjectHandle, error) {
 	case *pkcs11PrivateKeyECDSA:
 		handle = k.handle
 	default:
-		return -1, errors.Errorf("not a PKCS#11 asymmetric key")
+		return 0, errors.Errorf("not a PKCS#11 asymmetric key")
 	}
 	return handle, nil
 }
